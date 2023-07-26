@@ -86,10 +86,10 @@ class BinaryPacket implements PacketInterface
      * 解码
      *
      * @param Protocol $protocol 协议包对象 => 在解码后会将数据注入到协议包中
-     * @param string $data 需要解析的协议包
+     * @param string &$data 需要解析的协议包
      * @return void
      */
-    public function decode(Protocol $protocol, string $data): void
+    public function decode(Protocol $protocol, string &$data): void
     {
         /**
          * @var ProtocolFieldFormat $fieldFormat
@@ -111,7 +111,7 @@ class BinaryPacket implements PacketInterface
                         $values[] = $this->analysisVariableLengthField($fieldFormat->type, $data);
                     } else {
                         // 解析固定长度字段
-                        $values[] = $this->analysisFixedLengthField($fieldFormat->type, $data, $fieldFormat->arrayLength);
+                        $values[] = $this->analysisFixedLengthField($fieldFormat->type, $data, $fieldFormat->realityLength);
                     }
                 }
                 // 注入字段值
@@ -123,7 +123,7 @@ class BinaryPacket implements PacketInterface
                     $value = $this->analysisVariableLengthField($fieldFormat->type, $data);
                 } else {
                     // 解析固定长度字段
-                    $value = $this->analysisFixedLengthField($fieldFormat->type, $data, $fieldFormat->arrayLength);
+                    $value = $this->analysisFixedLengthField($fieldFormat->type, $data, $fieldFormat->realityLength);
                 }
                 // 注入字段值
                 $this->injectFieldValue($protocol, $fieldFormat, $value);
@@ -149,7 +149,7 @@ class BinaryPacket implements PacketInterface
         if ($fieldFormat->arrayLength > 0) {
             // 存数组长度
             $values[] = $fieldFormat->arrayLength;
-            $formats[] = self::getType(ProtocolFormat::DataTypeUint32);
+            $formats[] = self::getType(ProtocolFormat::DataTypeUint16);
 
             for ($i = 0; $i < $fieldFormat->arrayLength; $i++) {
                 if (isset($fieldValue[$i]) === true) {
@@ -167,8 +167,8 @@ class BinaryPacket implements PacketInterface
             }
         } else {
             // 存数组长度
-            $values[] =  count($fieldValue);
-            $formats[] = self::getType(ProtocolFormat::DataTypeUint32);
+            $values[] = count($fieldValue);
+            $formats[] = self::getType(ProtocolFormat::DataTypeUint16);
 
             // 非定长数组
             foreach ($fieldValue as $index => $val) {
@@ -203,7 +203,7 @@ class BinaryPacket implements PacketInterface
 
 
         $values[] = $length;
-        $formats[] = $this->getType(ProtocolFormat::DataTypeUint32);
+        $formats[] = $this->getType(ProtocolFormat::DataTypeUint16);
 
         // 实际的字段值
         $values[] = $fieldValue;
@@ -224,11 +224,13 @@ class BinaryPacket implements PacketInterface
             $protocolFieldType === ProtocolFormat::DataTypeString
         ) {
             $values[] = $realityLength;
-            $formats[] = $this->getType(ProtocolFormat::DataTypeUint32);
+            $formats[] = $this->getType(ProtocolFormat::DataTypeUint16);
 
-            // 实际的值
-            $values[] = $fieldValue;
-            $formats[] = $this->getType($protocolFieldType) . $realityLength;
+            if ($realityLength > 0) {
+                // 实际的值
+                $values[] = $fieldValue;
+                $formats[] = $this->getType($protocolFieldType) . $realityLength;
+            }
         } else {
             // 实际的值
             $values[] = $fieldValue;
@@ -245,14 +247,16 @@ class BinaryPacket implements PacketInterface
             throw new UndefinedMethodException(sprintf('class %s undefined method %s', $protocol::class, $methodName));
         }
 
+        $fieldValue =  $protocol->{$methodName}();
+
         // 可变长度
         if ($fieldFormat->isFixedLength === false) {
 
-            [$values, $formats] = $this->encodeNotArrayVariableLengthField($protocol->{$methodName}(), $fieldFormat->type, $fieldFormat->name);
+            [$values, $formats] = $this->encodeNotArrayVariableLengthField($fieldValue, $fieldFormat->type, $fieldFormat->name);
 
             // 固定长度
         } else {
-            [$values, $formats] = $this->encodeNotArrayFixedLengthField($protocol->{$methodName}(), $fieldFormat->type, $fieldFormat->realityLength);
+            [$values, $formats] = $this->encodeNotArrayFixedLengthField($fieldValue, $fieldFormat->type, $fieldFormat->realityLength);
         }
 
         return [$values, $formats];
@@ -261,9 +265,9 @@ class BinaryPacket implements PacketInterface
     /**
      * 解析固定长度字段值
      *
-     * @param Protocol $protocol 协议包对象
-     * @param ProtocolFieldFormat $fieldFormat 协议字段格式
+     * @param int $fieldFormatType 字段编码类型
      * @param string &$data 需要解析的协议包
+     * @param int $realityLength 实际长度(当字段编码类型为字符串时，需要提供一个固定长度)
      * @return mixed
      */
     protected function analysisFixedLengthField(int $fieldFormatType, string &$data, int $realityLength = 0): mixed
@@ -277,29 +281,19 @@ class BinaryPacket implements PacketInterface
         }
         $value = $this->unpack($format, $data);
 
-
-        $data = substr($data, $this->getTypeLength($fieldFormatType));
+        if ($fieldFormatType === ProtocolFormat::DataTypeString) {
+            $data = substr($data, $realityLength);
+        } else {
+            $data = substr($data, $this->getTypeLength($fieldFormatType));
+        }
 
         return $value;
     }
 
     /**
-     * 读取固定长度的数组字段
-     *
-     * @param Protocol $protocol
-     * @param ProtocolFieldFormat $fieldFormat
-     * @param string $data
-     */
-    protected function analysisFixedLengthArrayField(Protocol $protocol, ProtocolFieldFormat $fieldFormat, string &$data)
-    {
-
-    }
-
-    /**
      * 解析可变长度字段值
      *
-     * @param Protocol $protocol 协议包对象
-     * @param ProtocolFieldFormat $fieldFormat 协议字段格式
+     * @param int $fieldFormatType 字段类型
      * @param string &$data 需要解析的协议包
      * @return mixed
      */
@@ -323,8 +317,8 @@ class BinaryPacket implements PacketInterface
     protected function readVariableLength(string &$data): int
     {
         // 获取长度
-        $length = $this->unpack($this->getType(ProtocolFormat::DataTypeUint32), $data);
-        $data = substr($data, 4);
+        $length = $this->unpack($this->getType(ProtocolFormat::DataTypeUint16), $data);
+        $data = substr($data, $this->getTypeLength(ProtocolFormat::DataTypeUint16));
 
         return $length;
     }
