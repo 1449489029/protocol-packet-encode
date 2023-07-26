@@ -23,8 +23,8 @@ interface PacketInterface
      * 解码
      *
      * @param Protocol $protocol 协议包对象 => 在解码后会将数据注入到协议包中
-     * @param string $data 需要解析的协议包
+     * @param string &$data 需要解析的协议包
      * @return void
      */
-    public function decode(Protocol $protocol, string $data): void;
+    public function decode(Protocol $protocol, string &$data): void;
 }

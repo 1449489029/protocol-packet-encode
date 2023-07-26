@@ -31,10 +31,10 @@ abstract class Protocol
     /**
      * 解码
      *
-     * @param string $data
+     * @param string &$data
      * @return void
      */
-    public function decode(string $data): void
+    public function decode(string &$data): void
     {
         $this->packet->decode($this, $data);
     }
