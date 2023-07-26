@@ -70,7 +70,7 @@ class LogicPktTest extends TestCase
         $startTime = microtime(true);
         $startMemory = memory_get_usage();
         for ($i = 0; $i < 100000; $i++) {
-            $string = $logicPkt->setCommand(LogicPkt::COMMAND_LOGIN)->setChannelId($array['channelId'])->setFlag($array['flag'])->setSequence($array['sequence'])
+            $string = $logicPkt->setCommand($array['command'])->setChannelId($array['channelId'])->setFlag($array['flag'])->setSequence($array['sequence'])
                 ->setDestinationType($array['destinationType'])
                 ->setDestination($array['destination'])
                 ->setStatus($array['status'])
@@ -83,8 +83,9 @@ class LogicPktTest extends TestCase
         $startTime = microtime(true);
         $startMemory = memory_get_usage();
         for ($i = 0; $i < 100000; $i++) {
+            $newString = $string;
             $newLogicPkt = new LogicPkt();
-            $newLogicPkt->decode($string);
+            $newLogicPkt->decode($newString);
         }
         var_export(sprintf(PHP_EOL . '二进制解码耗时：%f', (microtime(true) - $startTime)));
         var_export(sprintf(PHP_EOL . '二进制解码内存消耗：%f', (memory_get_usage() - $startMemory)));
@@ -128,8 +129,9 @@ class LogicPktTest extends TestCase
         $startTime = microtime(true);
         $startMemory = memory_get_usage();
         for ($i = 0; $i < 100000; $i++) {
+            $newString = $string;
             $newLogicPkt = new LogicPkt();
-            $newLogicPkt->decode($string);
+            $newLogicPkt->decode($newString);
         }
         var_export(sprintf(PHP_EOL . 'JSON解码耗时：%f', (microtime(true) - $startTime)));
         var_export(sprintf(PHP_EOL . 'JSON解码内存消耗：%f', (memory_get_usage() - $startMemory)));
