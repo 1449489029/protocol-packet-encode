@@ -2,7 +2,7 @@
 
 namespace ProtocolPacketEncode;
 
-class InvalidDataTypeException extends RuntimeException
+class InvalidVariableLengthDataTypeException extends RuntimeException
 {
 
 }
