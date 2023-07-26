@@ -1,0 +1,21 @@
+{
+  "name": "1449489029/protocol-packet-encode",
+  "type": "library",
+  "keywords": [
+    "php"
+  ],
+  "description": "",
+  "require": {
+    "php": ">=8.0",
+    "phpunit/phpunit": ">=9.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "ProtocolPacketEncode\\": "src/ProtocolPacketEncode/",
+      "test\\": "test/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --prepend test/bootstrap.php -c phpunit.xml --colors=always"
+  }
+}
