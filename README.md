@@ -207,3 +207,8 @@ class BasicPktTest extends TestCase
     }
 }
 ```
+
+运行测试：
+```linux
+$ composer test
+```
