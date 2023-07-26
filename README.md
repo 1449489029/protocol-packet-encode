@@ -67,6 +67,11 @@ class BasicPkt extends Protocol
 }
 ```
 
+## 安装
+
+```linux
+$ composer require 1449489029/protocol-packet-encode
+```
 
 ## 支持编码类型：
 - 二进制
@@ -213,3 +218,4 @@ class BasicPktTest extends TestCase
 ```linux
 $ composer test
 ```
+
