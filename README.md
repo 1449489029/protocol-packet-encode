@@ -6,16 +6,17 @@
 
 例如：
 ```php
-/**
- * 定义协议包格式
- * 这里是配置协议包格式的核心
- *
- * @return void
- */
  class BasicPkt extends Protocol
 {
     // 省略其他代码 ...
     
+    
+    /**
+     * 定义协议包格式
+     * 这里是配置协议包格式的核心
+     *
+     * @return void
+     */
     protected function definePacketFormat(): void
     {
         $protocolFormat = (new ProtocolFormat())
